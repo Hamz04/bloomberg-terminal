@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  api:
+    build: .
+    container_name: bloomberg_api
+    ports:
+      - "8000:8000"
+    environment:
+      - ALPHA_VANTAGE_KEY=${ALPHA_VANTAGE_KEY}
+      - REDIS_URL=redis://redis:6379
+      - ENV=production
+    depends_on:
+      - redis
+    volumes:
+      - ./app:/app/app
+    restart: unless-stopped
+
+  dashboard:
+    build: .
+    container_name: bloomberg_dashboard
+    command: streamlit run dashboard/streamlit_app.py --server.port=8501 --server.address=0.0.0.0
+    ports:
+      - "8501:8501"
+    environment:
+      - API_URL=http://api:8000
+      - ALPHA_VANTAGE_KEY=${ALPHA_VANTAGE_KEY}
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: bloomberg_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  redis_data:
