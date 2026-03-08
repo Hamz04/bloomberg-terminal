@@ -1,4 +1,4 @@
-# Built by Hamza Ahmad - ETS Montreal
+# Built by Hamzy - ETS Montreal
 # FastAPI Bloomberg Terminal backend — full production application
 
 from __future__ import annotations
@@ -135,12 +135,12 @@ app = FastAPI(
     description=(
         "Production-grade financial data API providing real-time quotes, "
         "options chains, news sentiment, portfolio analytics, and stock screening.\n\n"
-        "**Built by Hamza Ahmad — ETS Montreal**"
+        "**Built by Hamzy — ETS Montreal**"
     ),
     version="1.0.0",
     contact={
-        "name": "Hamza Ahmad",
-        "email": "hamza.ahmad@etsmtl.ca",
+        "name": "Hamzy",
+        "email": "hhhyh178@gmail.com",
     },
     license_info={"name": "MIT"},
     lifespan=lifespan,
@@ -176,7 +176,7 @@ async def timing_and_author_middleware(request: Request, call_next: Any) -> Resp
     response: Response = await call_next(request)
     elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
     response.headers["X-Response-Time"] = f"{elapsed_ms}ms"
-    response.headers["X-Built-By"] = "Hamza Ahmad"
+    response.headers["X-Built-By"] = "Hamzy"
     logger.info(
         "{method} {path} → {status} ({elapsed}ms)",
         method=request.method,
@@ -207,7 +207,7 @@ async def health_check() -> JSONResponse:
         content={
             "status": "ok",
             "service": "Bloomberg Terminal API",
-            "author": "Hamza Ahmad - ETS Montreal",
+            "author": "Hamzy - ETS Montreal",
             "version": "1.0.0",
         }
     )

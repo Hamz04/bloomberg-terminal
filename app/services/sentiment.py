@@ -1,4 +1,4 @@
-# Built by Hamza Ahmad - ETS Montreal
+# Built by Hamzy - ETS Montreal
 # Sentiment analysis service using FinBERT + Yahoo Finance RSS feed
 
 from __future__ import annotations

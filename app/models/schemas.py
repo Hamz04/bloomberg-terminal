@@ -1,4 +1,4 @@
-# Built by Hamza Ahmad - ETS Montreal
+# Built by Hamzy - ETS Montreal
 # Pydantic v2 schemas for Bloomberg Terminal API
 
 from __future__ import annotations

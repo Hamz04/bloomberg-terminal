@@ -1,4 +1,4 @@
-# Built by Hamza Ahmad - ETS Montreal
+# Built by Hamzy - ETS Montreal
 # Streamlit Bloomberg Terminal Dashboard — full dark-theme, 5-page application
 
 from __future__ import annotations
@@ -51,14 +51,14 @@ PLOTLY_TEMPLATE = dict(
 # ---------------------------------------------------------------------------
 
 st.set_page_config(
-    page_title="Bloomberg Terminal | Hamza Ahmad",
+    page_title="Bloomberg Terminal | Hamzy",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={
         "Get Help": None,
         "Report a bug": None,
-        "About": "Bloomberg Terminal Clone — Built by Hamza Ahmad, ETS Montreal",
+        "About": "Bloomberg Terminal Clone — Built by Hamzy, ETS Montreal",
     },
 )
 
@@ -201,7 +201,7 @@ def change_arrow(val: float) -> str:
 with st.sidebar:
     st.markdown(
         f"<h2 style='color:{BLOOMBERG_ORANGE}; margin-bottom:0'>📊 BLOOMBERG</h2>"
-        f"<p style='color:{BLOOMBERG_GREY}; font-size:0.7rem; margin-top:2px'>Built by Hamza Ahmad · ETS Montreal</p>",
+        f"<p style='color:{BLOOMBERG_GREY}; font-size:0.7rem; margin-top:2px'>Built by Hamzy · ETS Montreal</p>",
         unsafe_allow_html=True,
     )
     st.markdown(f"<hr style='border-color:{BLOOMBERG_BORDER}'>", unsafe_allow_html=True)
@@ -941,7 +941,7 @@ st.markdown(
     <div style="margin-top:40px; padding:12px; border-top: 1px solid {BLOOMBERG_BORDER};
                 text-align:center; color:{BLOOMBERG_GREY}; font-size:0.7rem;">
         Bloomberg Terminal Clone &nbsp;·&nbsp; Built by
-        <span style="color:{BLOOMBERG_ORANGE}">Hamza Ahmad</span>
+        <span style="color:{BLOOMBERG_ORANGE}">Hamzy</span>
         &nbsp;·&nbsp; ETS Montreal &nbsp;·&nbsp;
         Data via yfinance / Yahoo Finance RSS &nbsp;·&nbsp; Sentiment by ProsusAI/FinBERT
     </div>

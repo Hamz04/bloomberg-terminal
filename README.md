@@ -1,5 +1,5 @@
 # Mini Bloomberg Terminal
-### Author: Hamza Ahmad | ETS Montreal
+### Author: Hamzy | ETS Montreal
 ### Built with FastAPI + Streamlit + FinBERT + yfinance
 
 ```
@@ -93,7 +93,7 @@ bloomberg-terminal/
 ### Option 1: Docker (Recommended)
 
 ```bash
-git clone https://github.com/hamzaahmad/bloomberg-terminal.git
+git clone https://github.com/Hamz04/bloomberg-terminal.git
 cd bloomberg-terminal
 cp .env.example .env
 # Add your ALPHA_VANTAGE_KEY to .env
@@ -189,4 +189,4 @@ Bloomberg Terminal Clone | Python, FastAPI, Streamlit, FinBERT, yfinance
 
 ## License
 
-MIT License - Hamza Ahmad, ETS Montreal, 2024
+MIT License - Hamzy, ETS Montreal, 2024

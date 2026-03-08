@@ -1,4 +1,4 @@
-# Built by Hamza Ahmad - ETS Montreal
+# Built by Hamzy - ETS Montreal
 # Market data service using yfinance + Alpha Vantage with Redis caching
 
 from __future__ import annotations

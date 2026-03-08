@@ -1,4 +1,4 @@
-# Built by Hamza Ahmad - ETS Montreal
+# Built by Hamzy - ETS Montreal
 # Portfolio analytics service: Sharpe, Beta, VaR, Max Drawdown, Correlation
 
 from __future__ import annotations
