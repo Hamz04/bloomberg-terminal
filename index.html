@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Bloomberg Terminal | Real-Time Financial Analytics</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.2.1/dist/chartjs-chart-financial.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1/dist/chartjs-adapter-luxon.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#0a0e17;--surface:#111827;--surface2:#1a2332;--border:#1e293b;
+--text:#e2e8f0;--muted:#64748b;--green:#10b981;--red:#ef4444;
+--blue:#3b82f6;--orange:#f59e0b;--purple:#8b5cf6;--cyan:#06b6d4;
+--bloomberg-orange:#ff6600;
+}
+body{background:var(--bg);color:var(--text);font-family:'Courier New',monospace;overflow-x:hidden}
+
+/* Top Bar */
+.top-bar{background:#000;border-bottom:2px solid var(--bloomberg-orange);padding:8px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.top-bar .logo{color:var(--bloomberg-orange);font-weight:bold;font-size:18px;letter-spacing:2px}
+.top-bar .status{display:flex;gap:20px;font-size:12px;color:var(--muted)}
+.top-bar .status .live{color:var(--green);display:flex;align-items:center;gap:5px}
+.top-bar .status .live::before{content:'';width:8px;height:8px;background:var(--green);border-radius:50%;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* Ticker Strip */
+.ticker-strip{background:#000;padding:6px 0;overflow:hidden;border-bottom:1px solid var(--border)}
+.ticker-track{display:flex;gap:40px;animation:scroll 30s linear infinite;width:max-content}
+@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ticker-item{display:flex;gap:8px;font-size:13px;white-space:nowrap}
+.ticker-item .sym{color:var(--bloomberg-orange);font-weight:bold}
+.ticker-item .price{color:var(--text)}
+.ticker-item .change.up{color:var(--green)}
+.ticker-item .change.down{color:var(--red)}
+
+/* Search Bar */
+.search-section{padding:15px 20px;background:var(--surface);border-bottom:1px solid var(--border)}
+.search-box{display:flex;gap:10px;max-width:600px}
+.search-box input{flex:1;background:var(--bg);border:1px solid var(--border);color:var(--bloomberg-orange);padding:10px 15px;font-family:'Courier New',monospace;font-size:14px;border-radius:4px;outline:none}
+.search-box input:focus{border-color:var(--bloomberg-orange)}
+.search-box input::placeholder{color:var(--muted)}
+.search-box button{background:var(--bloomberg-orange);color:#000;border:none;padding:10px 20px;font-family:'Courier New',monospace;font-weight:bold;cursor:pointer;border-radius:4px}
+
+/* Grid Layout */
+.dashboard{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto;gap:1px;background:var(--border);padding:1px;min-height:calc(100vh - 140px)}
+.panel{background:var(--surface);padding:0;overflow:hidden}
+.panel-header{background:var(--surface2);padding:8px 15px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
+.panel-header h3{font-size:12px;color:var(--bloomberg-orange);letter-spacing:1px;text-transform:uppercase}
+.panel-header .tag{font-size:10px;padding:2px 8px;border-radius:3px;background:rgba(16,185,129,.15);color:var(--green)}
+.panel-body{padding:15px}
+
+/* Candlestick Chart */
+.chart-container{position:relative;height:320px}
+
+/* Quote Display */
+.quote-main{text-align:center;padding:20px 0}
+.quote-main .symbol{font-size:28px;color:var(--bloomberg-orange);font-weight:bold}
+.quote-main .price-big{font-size:48px;font-weight:bold;margin:10px 0}
+.quote-main .change-line{font-size:18px}
+.quote-main .change-line.up{color:var(--green)}
+.quote-main .change-line.down{color:var(--red)}
+.quote-details{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:15px}
+.quote-detail{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px}
+.quote-detail .label{color:var(--muted)}
+
+/* Sentiment Gauge */
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;padding:20px}
+.gauge-svg{width:200px;height:120px}
+.gauge-label{font-size:36px;font-weight:bold;margin:10px 0}
+.gauge-sublabel{color:var(--muted);font-size:12px}
+.sentiment-bars{width:100%;margin-top:20px}
+.sent-bar{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:12px}
+.sent-bar .bar-label{width:80px;color:var(--muted);text-align:right}
+.sent-bar .bar-track{flex:1;height:8px;background:var(--bg);border-radius:4px;overflow:hidden}
+.sent-bar .bar-fill{height:100%;border-radius:4px;transition:width 1s ease}
+
+/* Portfolio Pie */
+.pie-container{display:flex;align-items:center;gap:20px;padding:10px}
+.pie-chart-wrap{width:180px;height:180px;flex-shrink:0}
+.pie-legend{flex:1}
+.pie-legend-item{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px}
+.pie-legend-item .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.pie-legend-item .alloc{margin-left:auto;color:var(--muted)}
+
+/* Order Book */
+.orderbook{font-size:12px}
+.ob-header{display:grid;grid-template-columns:1fr 1fr 1fr;text-align:right;padding:4px 0;color:var(--muted);border-bottom:1px solid var(--border);margin-bottom:5px}
+.ob-row{display:grid;grid-template-columns:1fr 1fr 1fr;text-align:right;padding:3px 0;position:relative}
+.ob-row.ask{color:var(--red)}
+.ob-row.bid{color:var(--green)}
+.ob-row .depth{position:absolute;top:0;bottom:0;right:0;opacity:.08}
+.ob-row.ask .depth{background:var(--red)}
+.ob-row.bid .depth{background:var(--green)}
+.ob-spread{text-align:center;padding:8px 0;color:var(--bloomberg-orange);font-weight:bold;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin:5px 0}
+
+/* News Feed */
+.news-feed{max-height:300px;overflow-y:auto}
+.news-feed::-webkit-scrollbar{width:4px}
+.news-feed::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.news-item{padding:10px 0;border-bottom:1px solid var(--border)}
+.news-item:last-child{border:none}
+.news-item .time{font-size:10px;color:var(--bloomberg-orange)}
+.news-item .headline{font-size:13px;margin:4px 0;color:var(--text);line-height:1.4}
+.news-item .source{font-size:10px;color:var(--muted)}
+.news-item .tag-row{display:flex;gap:5px;margin-top:5px}
+.news-item .ntag{font-size:9px;padding:2px 6px;border-radius:2px;background:rgba(59,130,246,.15);color:var(--blue)}
+
+/* Watchlist */
+.watchlist-table{width:100%;font-size:12px;border-collapse:collapse}
+.watchlist-table th{text-align:left;padding:6px 8px;color:var(--muted);border-bottom:1px solid var(--border);font-weight:normal;text-transform:uppercase;font-size:10px}
+.watchlist-table td{padding:6px 8px;border-bottom:1px solid var(--border)}
+.watchlist-table tr:hover{background:var(--surface2)}
+.mini-chart{width:60px;height:20px}
+
+/* Responsive */
+@media(max-width:900px){
+.dashboard{grid-template-columns:1fr}
+.pie-container{flex-direction:column}
+}
+
+/* Animations */
+@keyframes fadeIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.panel{animation:fadeIn .4s ease}
+.panel:nth-child(2){animation-delay:.1s}
+.panel:nth-child(3){animation-delay:.2s}
+.panel:nth-child(4){animation-delay:.3s}
+.panel:nth-child(5){animation-delay:.4s}
+.panel:nth-child(6){animation-delay:.5s}
+
+/* Number animations */
+.flash-green{animation:flashG .5s}@keyframes flashG{0%{color:var(--green);text-shadow:0 0 8px rgba(16,185,129,.5)}100%{color:var(--text);text-shadow:none}}
+.flash-red{animation:flashR .5s}@keyframes flashR{0%{color:var(--red);text-shadow:0 0 8px rgba(239,68,68,.5)}100%{color:var(--text);text-shadow:none}}
+
+/* Footer */
+.footer-bar{background:#000;border-top:1px solid var(--border);padding:6px 20px;display:flex;justify-content:space-between;font-size:10px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="top-bar">
+  <div class="logo">BLOOMBERG TERMINAL <span style="color:var(--muted);font-size:12px">v3.2.1</span></div>
+  <div class="status">
+    <span class="live">MARKET OPEN</span>
+    <span id="clock">--:--:--</span>
+    <span>NYSE | NASDAQ | CME</span>
+  </div>
+</div>
+
+<!-- Ticker Strip -->
+<div class="ticker-strip">
+  <div class="ticker-track" id="tickerTrack"></div>
+</div>
+
+<!-- Search -->
+<div class="search-section">
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="Enter ticker symbol (AAPL, TSLA, BTC, ETH...)" value="AAPL">
+    <button onclick="loadTicker()">GO</button>
+  </div>
+</div>
+
+<!-- Dashboard Grid -->
+<div class="dashboard">
+  <!-- Panel 1: Price Chart -->
+  <div class="panel" style="grid-column:span 2">
+    <div class="panel-header">
+      <h3 id="chartTitle">AAPL - Apple Inc. - 1D Candlestick</h3>
+      <div style="display:flex;gap:8px">
+        <span class="tag">LIVE</span>
+        <span style="font-size:10px;color:var(--muted)">Last 60 bars</span>
+      </div>
+    </div>
+    <div class="panel-body">
+      <div class="chart-container"><canvas id="priceChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Panel 2: Quote -->
+  <div class="panel">
+    <div class="panel-header"><h3>Quote Detail</h3><span class="tag">RT</span></div>
+    <div class="panel-body">
+      <div class="quote-main">
+        <div class="symbol" id="qSymbol">AAPL</div>
+        <div class="price-big" id="qPrice">198.45</div>
+        <div class="change-line up" id="qChange">+2.34 (+1.19%)</div>
+      </div>
+      <div class="quote-details" id="qDetails">
+        <div class="quote-detail"><span class="label">Open</span><span>196.11</span></div>
+        <div class="quote-detail"><span class="label">High</span><span>199.62</span></div>
+        <div class="quote-detail"><span class="label">Low</span><span>195.80</span></div>
+        <div class="quote-detail"><span class="label">Prev Close</span><span>196.11</span></div>
+        <div class="quote-detail"><span class="label">Volume</span><span>52.3M</span></div>
+        <div class="quote-detail"><span class="label">Avg Vol</span><span>48.1M</span></div>
+        <div class="quote-detail"><span class="label">Mkt Cap</span><span>3.08T</span></div>
+        <div class="quote-detail"><span class="label">P/E</span><span>31.2</span></div>
+        <div class="quote-detail"><span class="label">EPS</span><span>6.36</span></div>
+        <div class="quote-detail"><span class="label">Div Yield</span><span>0.52%</span></div>
+        <div class="quote-detail"><span class="label">52W High</span><span>205.12</span></div>
+        <div class="quote-detail"><span class="label">52W Low</span><span>155.98</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel 3: Sentiment -->
+  <div class="panel">
+    <div class="panel-header"><h3>Market Sentiment</h3><span class="tag">AI</span></div>
+    <div class="panel-body">
+      <div class="gauge-wrap">
+        <svg class="gauge-svg" viewBox="0 0 200 120">
+          <defs>
+            <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#ef4444"/>
+              <stop offset="50%" stop-color="#f59e0b"/>
+              <stop offset="100%" stop-color="#10b981"/>
+            </linearGradient>
+          </defs>
+          <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="#1e293b" stroke-width="12" stroke-linecap="round"/>
+          <path d="M20 100 A80 80 0 0 1 180 100" fill="none" stroke="url(#gaugeGrad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="251" stroke-dashoffset="251" id="gaugeArc"/>
+          <circle cx="100" cy="100" r="4" fill="var(--bloomberg-orange)" id="gaugeNeedle"/>
+          <line x1="100" y1="100" x2="60" y2="40" stroke="var(--bloomberg-orange)" stroke-width="2" id="needleLine" stroke-linecap="round"/>
+        </svg>
+        <div class="gauge-label" id="sentScore">72</div>
+        <div class="gauge-sublabel">BULLISH - Strong Buy Signal</div>
+      </div>
+      <div class="sentiment-bars">
+        <div class="sent-bar"><span class="bar-label">Social</span><div class="bar-track"><div class="bar-fill" style="width:78%;background:var(--green)"></div></div><span>78%</span></div>
+        <div class="sent-bar"><span class="bar-label">News</span><div class="bar-track"><div class="bar-fill" style="width:65%;background:var(--blue)"></div></div><span>65%</span></div>
+        <div class="sent-bar"><span class="bar-label">Technical</span><div class="bar-track"><div class="bar-fill" style="width:82%;background:var(--cyan)"></div></div><span>82%</span></div>
+        <div class="sent-bar"><span class="bar-label">Options</span><div class="bar-track"><div class="bar-fill" style="width:58%;background:var(--purple)"></div></div><span>58%</span></div>
+        <div class="sent-bar"><span class="bar-label">Insider</span><div class="bar-track"><div class="bar-fill" style="width:45%;background:var(--orange)"></div></div><span>45%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel 4: Order Book -->
+  <div class="panel">
+    <div class="panel-header"><h3>Order Book - Level II</h3><span class="tag">DEPTH</span></div>
+    <div class="panel-body">
+      <div class="orderbook" id="orderbook"></div>
+    </div>
+  </div>
+
+  <!-- Panel 5: Portfolio -->
+  <div class="panel">
+    <div class="panel-header"><h3>Portfolio Allocation</h3><span style="font-size:10px;color:var(--green)">+12.4% YTD</span></div>
+    <div class="panel-body">
+      <div class="pie-container">
+        <div class="pie-chart-wrap"><canvas id="pieChart"></canvas></div>
+        <div class="pie-legend" id="pieLegend"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel 6: Watchlist -->
+  <div class="panel">
+    <div class="panel-header"><h3>Watchlist</h3><span style="font-size:10px;color:var(--muted)">8 Securities</span></div>
+    <div class="panel-body">
+      <table class="watchlist-table">
+        <thead><tr><th>Symbol</th><th>Last</th><th>Chg</th><th>Chg%</th><th>Vol</th></tr></thead>
+        <tbody id="watchlistBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Panel 7: News -->
+  <div class="panel" style="grid-column:span 2">
+    <div class="panel-header"><h3>Market News & Analysis</h3><span class="tag">FEED</span></div>
+    <div class="panel-body">
+      <div class="news-feed" id="newsFeed"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="footer-bar">
+  <span>Bloomberg Terminal Demo | Built with Python, Streamlit, yfinance, NLTK</span>
+  <span id="footerTime"></span>
+  <span><a href="https://github.com/Hamz04/bloomberg-terminal" style="color:var(--bloomberg-orange);text-decoration:none">View Source on GitHub</a></span>
+</div>
+
+<script>
+// ========== DATA ==========
+const tickers = [
+  {sym:'AAPL',name:'Apple Inc.',price:198.45,chg:2.34,pct:1.19,vol:'52.3M',mcap:'3.08T',pe:31.2,eps:6.36,div:0.52,h52:205.12,l52:155.98,open:196.11,high:199.62,low:195.80},
+  {sym:'TSLA',name:'Tesla Inc.',price:248.91,chg:-3.12,pct:-1.24,vol:'98.1M',mcap:'792B',pe:62.8,eps:3.96,div:0,h52:299.29,l52:138.80,open:252.03,high:253.50,low:247.10},
+  {sym:'MSFT',name:'Microsoft Corp.',price:422.86,chg:5.67,pct:1.36,vol:'22.7M',mcap:'3.14T',pe:36.5,eps:11.58,div:0.72,h52:430.82,l52:309.45,open:417.19,high:424.10,low:416.50},
+  {sym:'GOOGL',name:'Alphabet Inc.',price:175.98,chg:1.23,pct:0.70,vol:'28.4M',mcap:'2.18T',pe:25.1,eps:7.01,div:0,h52:191.75,l52:120.21,open:174.75,high:177.02,low:174.10},
+  {sym:'AMZN',name:'Amazon.com Inc.',price:192.45,chg:3.89,pct:2.06,vol:'45.6M',mcap:'2.01T',pe:58.3,eps:3.30,div:0,h52:201.20,l52:118.35,open:188.56,high:193.12,low:188.01},
+  {sym:'NVDA',name:'NVIDIA Corp.',price:878.36,chg:15.23,pct:1.76,vol:'41.2M',mcap:'2.17T',pe:68.4,eps:12.84,div:0.04,h52:974.00,l52:298.06,open:863.13,high:882.50,low:861.20},
+  {sym:'BTC',name:'Bitcoin',price:68425.30,chg:1250.40,pct:1.86,vol:'32.1B',mcap:'1.34T',pe:'-',eps:'-',div:'-',h52:73750,l52:24930,open:67174.90,high:69100.00,low:66980.50},
+  {sym:'ETH',name:'Ethereum',price:3584.72,chg:-45.30,pct:-1.25,vol:'18.7B',mcap:'430B',pe:'-',eps:'-',div:'-',h52:4092,l52:1523,open:3630.02,high:3648.90,low:3560.10},
+  {sym:'META',name:'Meta Platforms',price:502.30,chg:8.45,pct:1.71,vol:'18.9M',mcap:'1.28T',pe:28.4,eps:17.68,div:0.40,h52:531.49,l52:274.38,open:493.85,high:504.20,low:492.10},
+  {sym:'JPM',name:'JPMorgan Chase',price:198.12,chg:1.56,pct:0.79,vol:'8.2M',mcap:'571B',pe:11.8,eps:16.79,div:2.40,h52:205.88,l52:143.64,open:196.56,high:199.05,low:196.01}
+];
+
+const news = [
+  {time:'2 min ago',headline:'Fed Signals Potential Rate Cut in June Meeting Minutes',source:'Reuters',tags:['MACRO','RATES']},
+  {time:'15 min ago',headline:'NVIDIA Surpasses $2T Market Cap After Record Data Center Revenue',source:'Bloomberg',tags:['NVDA','EARNINGS']},
+  {time:'28 min ago',headline:'Bitcoin ETF Inflows Hit $1.2B Weekly Record as Institutional Demand Surges',source:'CoinDesk',tags:['BTC','ETF']},
+  {time:'45 min ago',headline:'Apple Vision Pro Sales Exceed Analyst Estimates in Q1',source:'CNBC',tags:['AAPL','HARDWARE']},
+  {time:'1 hr ago',headline:'Tesla Gigafactory Berlin Reaches 5,000 Units/Week Production Milestone',source:'Electrek',tags:['TSLA','PRODUCTION']},
+  {time:'1.5 hr ago',headline:'Ethereum Dencun Upgrade Reduces L2 Fees by 90%, DeFi TVL Rebounds',source:'The Block',tags:['ETH','DEFI']},
+  {time:'2 hr ago',headline:'JPMorgan Raises S&P 500 Year-End Target to 5,400 Citing Strong Earnings',source:'MarketWatch',tags:['SPX','OUTLOOK']},
+  {time:'3 hr ago',headline:'Microsoft Azure AI Revenue Grows 50% YoY, Cloud Division Beats Estimates',source:'TechCrunch',tags:['MSFT','CLOUD']},
+];
+
+const portfolio = [
+  {name:'US Equities',pct:35,color:'#3b82f6'},
+  {name:'Crypto',pct:20,color:'#f59e0b'},
+  {name:'Fixed Income',pct:15,color:'#10b981'},
+  {name:'Int\'l Equities',pct:12,color:'#8b5cf6'},
+  {name:'Real Estate',pct:10,color:'#ef4444'},
+  {name:'Commodities',pct:5,color:'#06b6d4'},
+  {name:'Cash',pct:3,color:'#64748b'},
+];
+
+let currentTicker = tickers[0];
+let priceChart, pieChartInstance;
+
+// ========== TICKER STRIP ==========
+function initTickerStrip(){
+  const track=document.getElementById('tickerTrack');
+  let html='';
+  for(let i=0;i<3;i++){
+    tickers.forEach(t=>{
+      const up=t.chg>=0;
+      html+=`<div class="ticker-item"><span class="sym">${t.sym}</span><span class="price">${t.sym==='BTC'||t.sym==='ETH'?t.price.toLocaleString():t.price.toFixed(2)}</span><span class="change ${up?'up':'down'}">${up?'+':''}${t.chg.toFixed(2)} (${up?'+':''}${t.pct.toFixed(2)}%)</span></div>`;
+    });
+  }
+  track.innerHTML=html;
+}
+
+// ========== CANDLESTICK CHART ==========
+function generateCandlestickData(basePrice, count=60){
+  const data=[];
+  let price=basePrice*0.92;
+  const now=Date.now();
+  for(let i=0;i<count;i++){
+    const volatility=price*0.015;
+    const open=price+((Math.random()-0.48)*volatility);
+    const close=open+((Math.random()-0.45)*volatility);
+    const high=Math.max(open,close)+(Math.random()*volatility*0.5);
+    const low=Math.min(open,close)-(Math.random()*volatility*0.5);
+    data.push({x:now-(count-i)*86400000,o:open,h:high,l:low,c:close});
+    price=close;
+  }
+  return data;
+}
+
+function initPriceChart(){
+  const ctx=document.getElementById('priceChart').getContext('2d');
+  if(priceChart) priceChart.destroy();
+  const data=generateCandlestickData(currentTicker.price);
+  
+  priceChart=new Chart(ctx,{
+    type:'bar',
+    data:{
+      datasets:[{
+        label:currentTicker.sym,
+        data:data.map(d=>({
+          x:d.x,
+          y:[d.o,d.h,d.l,d.c]
+        })),
+        backgroundColor:data.map(d=>d.c>=d.o?'rgba(16,185,129,0.8)':'rgba(239,68,68,0.8)'),
+        borderColor:data.map(d=>d.c>=d.o?'#10b981':'#ef4444'),
+        borderWidth:1,
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{
+        callbacks:{label:function(ctx){
+          const v=ctx.raw.y;
+          return [`O: ${v[0].toFixed(2)}`,`H: ${v[1].toFixed(2)}`,`L: ${v[2].toFixed(2)}`,`C: ${v[3].toFixed(2)}`];
+        }}
+      }},
+      scales:{
+        x:{type:'time',time:{unit:'day'},grid:{color:'rgba(30,41,59,0.5)'},ticks:{color:'#64748b',maxTicksLimit:10}},
+        y:{grid:{color:'rgba(30,41,59,0.5)'},ticks:{color:'#64748b',callback:v=>currentTicker.price>1000?v.toLocaleString():v.toFixed(2)}}
+      }
+    }
+  });
+}
+
+// ========== QUOTE ==========
+function updateQuote(){
+  const t=currentTicker;
+  document.getElementById('qSymbol').textContent=t.sym+' - '+t.name;
+  const priceStr=t.price>1000?t.price.toLocaleString(undefined,{minimumFractionDigits:2}):t.price.toFixed(2);
+  document.getElementById('qPrice').textContent=priceStr;
+  const up=t.chg>=0;
+  document.getElementById('qChange').textContent=`${up?'+':''}${t.chg.toFixed(2)} (${up?'+':''}${t.pct.toFixed(2)}%)`;
+  document.getElementById('qChange').className='change-line '+(up?'up':'down');
+  
+  const fmt=v=>typeof v==='number'?(v>1000?v.toLocaleString():v.toFixed(2)):v;
+  const details=[
+    ['Open',fmt(t.open)],['High',fmt(t.high)],['Low',fmt(t.low)],['Prev Close',fmt(t.open-t.chg)],
+    ['Volume',t.vol],['Avg Vol',t.vol],['Mkt Cap',t.mcap],['P/E',fmt(t.pe)],
+    ['EPS',fmt(t.eps)],['Div Yield',typeof t.div==='number'?t.div.toFixed(2)+'%':t.div],
+    ['52W High',fmt(t.h52)],['52W Low',fmt(t.l52)]
+  ];
+  document.getElementById('qDetails').innerHTML=details.map(d=>`<div class="quote-detail"><span class="label">${d[0]}</span><span>${d[1]}</span></div>`).join('');
+}
+
+// ========== ORDER BOOK ==========
+function generateOrderBook(){
+  const mid=currentTicker.price;
+  const spread=mid*0.0005;
+  let html='<div class="ob-header"><span>Price</span><span>Size</span><span>Total</span></div>';
+  
+  // Asks (sells) - top
+  let askTotal=0;
+  for(let i=7;i>=0;i--){
+    const price=(mid+spread/2+i*spread*0.8);
+    const size=Math.floor(Math.random()*5000)+500;
+    askTotal+=size;
+    const pct=Math.min(size/5000*100,100);
+    const fmt=price>1000?price.toLocaleString(undefined,{minimumFractionDigits:2}):price.toFixed(2);
+    html+=`<div class="ob-row ask"><span>${fmt}</span><span>${size.toLocaleString()}</span><span>${askTotal.toLocaleString()}</span><div class="depth" style="width:${pct}%"></div></div>`;
+  }
+  
+  html+=`<div class="ob-spread">Spread: $${(spread).toFixed(4)} (${(spread/mid*100).toFixed(3)}%)</div>`;
+  
+  // Bids (buys) - bottom
+  let bidTotal=0;
+  for(let i=0;i<8;i++){
+    const price=(mid-spread/2-i*spread*0.8);
+    const size=Math.floor(Math.random()*5000)+500;
+    bidTotal+=size;
+    const pct=Math.min(size/5000*100,100);
+    const fmt=price>1000?price.toLocaleString(undefined,{minimumFractionDigits:2}):price.toFixed(2);
+    html+=`<div class="ob-row bid"><span>${fmt}</span><span>${size.toLocaleString()}</span><span>${bidTotal.toLocaleString()}</span><div class="depth" style="width:${pct}%"></div></div>`;
+  }
+  
+  document.getElementById('orderbook').innerHTML=html;
+}
+
+// ========== PIE CHART ==========
+function initPieChart(){
+  const ctx=document.getElementById('pieChart').getContext('2d');
+  if(pieChartInstance) pieChartInstance.destroy();
+  pieChartInstance=new Chart(ctx,{
+    type:'doughnut',
+    data:{
+      labels:portfolio.map(p=>p.name),
+      datasets:[{data:portfolio.map(p=>p.pct),backgroundColor:portfolio.map(p=>p.color),borderWidth:0,hoverOffset:8}]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:true,
+      cutout:'65%',
+      plugins:{legend:{display:false}}
+    }
+  });
+  
+  document.getElementById('pieLegend').innerHTML=portfolio.map(p=>
+    `<div class="pie-legend-item"><span class="dot" style="background:${p.color}"></span><span>${p.name}</span><span class="alloc">${p.pct}%</span></div>`
+  ).join('');
+}
+
+// ========== WATCHLIST ==========
+function initWatchlist(){
+  const body=document.getElementById('watchlistBody');
+  body.innerHTML=tickers.slice(0,8).map(t=>{
+    const up=t.chg>=0;
+    const color=up?'var(--green)':'var(--red)';
+    const priceStr=t.price>1000?t.price.toLocaleString(undefined,{minimumFractionDigits:2}):t.price.toFixed(2);
+    return `<tr style="cursor:pointer" onclick="selectTicker('${t.sym}')">
+      <td style="color:var(--bloomberg-orange);font-weight:bold">${t.sym}</td>
+      <td>${priceStr}</td>
+      <td style="color:${color}">${up?'+':''}${t.chg.toFixed(2)}</td>
+      <td style="color:${color}">${up?'+':''}${t.pct.toFixed(2)}%</td>
+      <td style="color:var(--muted)">${t.vol}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ========== NEWS ==========
+function initNews(){
+  document.getElementById('newsFeed').innerHTML=news.map(n=>
+    `<div class="news-item">
+      <div class="time">${n.time}</div>
+      <div class="headline">${n.headline}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="tag-row">${n.tags.map(t=>`<span class="ntag">${t}</span>`).join('')}</div>
+        <span class="source">${n.source}</span>
+      </div>
+    </div>`
+  ).join('');
+}
+
+// ========== GAUGE ==========
+function animateGauge(){
+  const score=Math.floor(Math.random()*30)+55;
+  const arc=document.getElementById('gaugeArc');
+  const needle=document.getElementById('needleLine');
+  const pct=score/100;
+  arc.style.transition='stroke-dashoffset 1.5s ease';
+  arc.style.strokeDashoffset=251*(1-pct);
+  const angle=-180+pct*180;
+  const rad=angle*Math.PI/180;
+  const nx=100+70*Math.cos(rad);
+  const ny=100+70*Math.sin(rad);
+  needle.setAttribute('x2',nx);
+  needle.setAttribute('y2',ny);
+  document.getElementById('sentScore').textContent=score;
+}
+
+// ========== CLOCK ==========
+function updateClock(){
+  const now=new Date();
+  document.getElementById('clock').textContent=now.toLocaleTimeString('en-US',{hour12:false});
+  document.getElementById('footerTime').textContent=now.toLocaleString('en-US',{dateStyle:'full',timeStyle:'medium'});
+}
+
+// ========== TICKER SELECTION ==========
+function selectTicker(sym){
+  const t=tickers.find(x=>x.sym===sym);
+  if(t){currentTicker=t;loadTickerData();}
+}
+function loadTicker(){
+  const val=document.getElementById('searchInput').value.toUpperCase().trim();
+  const t=tickers.find(x=>x.sym===val);
+  if(t){currentTicker=t;loadTickerData();}
+  else{alert('Demo supports: '+tickers.map(t=>t.sym).join(', '));}
+}
+function loadTickerData(){
+  document.getElementById('chartTitle').textContent=currentTicker.sym+' - '+currentTicker.name+' - 1D Candlestick';
+  document.getElementById('searchInput').value=currentTicker.sym;
+  updateQuote();
+  initPriceChart();
+  generateOrderBook();
+}
+
+// ========== LIVE UPDATES ==========
+function simulateLiveUpdate(){
+  tickers.forEach(t=>{
+    const change=(Math.random()-0.48)*t.price*0.002;
+    t.price+=change;
+    t.chg+=change;
+    t.pct=(t.chg/(t.price-t.chg))*100;
+    if(t.price>t.high)t.high=t.price;
+    if(t.price<t.low)t.low=t.price;
+  });
+  updateQuote();
+  initWatchlist();
+  generateOrderBook();
+}
+
+// ========== INIT ==========
+window.addEventListener('load',()=>{
+  initTickerStrip();
+  initPriceChart();
+  updateQuote();
+  generateOrderBook();
+  initPieChart();
+  initWatchlist();
+  initNews();
+  animateGauge();
+  updateClock();
+  
+  setInterval(updateClock,1000);
+  setInterval(simulateLiveUpdate,2000);
+  setInterval(animateGauge,8000);
+  
+  document.getElementById('searchInput').addEventListener('keydown',e=>{if(e.key==='Enter')loadTicker();});
+});
+</script>
+</body>
+</html>
